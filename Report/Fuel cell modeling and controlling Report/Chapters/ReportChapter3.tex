@@ -1,0 +1,405 @@
+% Chapter 3 — Methodology
+
+\chapter{Methodology}
+
+\label{Chapter3}
+
+\section{Simplified Control-Oriented Model}
+\label{sec:model}
+
+Following \cite{thanapalan2008,pukrushpan2003}, the cell is split into three
+interacting parts --- anode, membrane, and cathode --- each lumped into a single
+control volume. The main assumptions are: hydrogen and air are the only
+reactants; channel pressure drops are neglected; gases obey the ideal-gas law;
+temperature is constant or slowly varying; and the oxygen partial pressure is
+fixed at $P_{O_2}^{\ast}=0.21\,P_{\mathrm{atm}}$. The result is a simplified
+semi-empirical model: physically motivated mass balances combined with empirical
+loss laws calibrated from data \cite{cao2019}.
+
+\subsection{Open-Circuit Voltage}
+The reversible (open-circuit) voltage follows from the Gibbs free energy of the
+reaction and Faraday's law (full derivation in Appendix~\ref{app:ocv}):
+\begin{equation}
+    \label{eq:ocv}
+    E = 1.229 - 0.85\times10^{-3}(T_{fc}-298.15)
+      + 4.31\times10^{-5}\,T_{fc}\left[\ln p_{H_2} + \tfrac{1}{2}\ln p_{O_2}\right]\;\mathrm{V},
+\end{equation}
+with $T_{fc}$ the stack temperature [K] and $p_{H_2}$, $p_{O_2}$ the reactant
+partial pressures [atm] \cite{pukrushpan2003}.
+
+\subsection{Voltage Losses}
+The cell voltage is the reversible voltage minus the three losses of
+Section~\ref{sec:sota}:
+\begin{equation}
+    \label{eq:vfc}
+    v_{fc} = E - v_{act} - v_{ohm} - v_{con},
+\end{equation}
+with the semi-empirical forms \cite{pukrushpan2003,thanapalan2008,cao2019}
+\begin{align}
+    v_{act} &= \xi_1+\xi_2 T+\xi_3 T\ln(C_{O_2})+\xi_4 T\ln(i_{FC}),
+    \label{eq:vact}\\
+    v_{ohm} &= i_{FC}\Bigl(\rho_m\frac{t_m}{A_{fc}}+c\Bigr),
+    \qquad
+    \rho_m = \Bigl[(b_{11}\lambda_m-b_{12})
+              \exp\bigl(b_2(\tfrac{1}{303}-\tfrac{1}{T_{fc}})\bigr)\Bigr]^{-1},
+    \label{eq:vohm}\\
+    v_{con} &= -B\ln\Bigl(1-\frac{i_{FC}}{i_{\max}}\Bigr),
+    \label{eq:vcon}
+\end{align}
+where $i_{FC}$ is the cell current, $C_{O_2}$ the dissolved-oxygen concentration
+(Henry's law), $t_m$ and $A_{fc}$ the membrane thickness and active area,
+$\lambda_m$ the membrane water content, and
+$\boldsymbol{\theta}=(\xi_1,\xi_2,\xi_3,\xi_4,B,c)$ the six parameters identified
+per cell in Section~\ref{sec:identification}. The stack voltage is the sum over
+the $n$ cells in series.
+
+\subsection{Anode Dynamics}
+The hydrogen pressure follows a mass balance on the anode volume with Faraday
+consumption:
+\begin{equation}
+    \label{eq:anode}
+    \dot{P}_{H_2}=\frac{R_{H_2}T}{V_{an}}
+    \Bigl(W_{H_2,in}-W_{H_2,out}-\frac{M_{H_2}n}{2F}\,i_{FC}\Bigr),
+\end{equation}
+and the anode water balance keeps only the membrane flux,
+$\dot{m}_{w,an}=W_{v,mbr}$, with relative humidity
+$\phi_{an}=m_{w,an}R_vT/(V_{an}p_{sat}(T))$. The hydrogen pressure $P_{H_2}$
+enters the Nernst term of \eqref{eq:ocv} and is the primary state of interest.
+
+\subsection{Membrane and Cathode}
+\label{sec:membrane}
+Water crosses the membrane mainly by electro-osmotic drag --- protons dragging
+water molecules from anode to cathode ---
+$W_{v,mbr}=M_v A_{fc}\,n\,n_d\,i_{FC}/F$ \cite{pukrushpan2003}; the membrane water
+content follows the Springer sorption isotherm
+$\lambda(a)=0.043+17.81a-39.85a^2+36.0a^3$, averaged over the two faces. On the
+cathode side, the oxygen partial pressure is held at
+$P_{O_2}^{\ast}=0.21\,P_{\mathrm{atm}}$, which removes the oxygen state while
+keeping the cathode water balance,
+$\dot{m}_{w,ca}=-W_{v,mbr}+W_{v,gen}$ with $W_{v,gen}=M_v n\,i_{FC}/(2F)$, whose
+humidity feeds back into the ohmic loss through $\lambda_m$. The block-level
+architecture of the resulting model is shown in Figure~\ref{fig:architecture}.
+
+\begin{figure}[t]
+\centering
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[
+    >=Latex,
+    block/.style={draw, rectangle, thick, fill=white, align=center,
+        text width=4.5cm, minimum height=1.9cm, inner sep=6pt, font=\small},
+    vblock/.style={draw, rectangle, thick, fill=white, align=center,
+        text width=5.4cm, minimum height=1.85cm, inner sep=6pt, font=\small},
+    oblock/.style={draw, rectangle, thick, fill=white, align=center,
+        text width=4.8cm, minimum height=1.6cm, inner sep=6pt, font=\small},
+    lab/.style={font=\scriptsize, align=center},
+    line/.style={-{Latex[length=2mm,width=1.4mm]}, line width=0.8pt}
+]
+\node[block] (anode) {\textbf{Anode subsystem}\\[0.15em]
+Hydrogen mass balance\\ Water balance\\ Outputs: $P_{H_2},\,\phi_{an}$};
+\node[block, right=2.8cm of anode] (membrane) {\textbf{Membrane subsystem}\\[0.15em]
+Hydration / water transport\\ Electro-osmotic drag\\ Back-diffusion\\ Output: $W_{v,mbr}$};
+\node[block, right=2.8cm of membrane] (cathode) {\textbf{Cathode subsystem}\\[0.15em]
+Constant $P_{O_2}^{\ast}=0.21P_{\mathrm{atm}}$\\ Water balance + reaction water\\ Output: $\phi_{ca}$};
+\node[vblock, below=1.50cm of membrane] (voltage) {\textbf{Fuel cell voltage block}\\[0.15em]
+$E-v_{act}-v_{ohm}-v_{con}$\\ Inputs: $P_{H_2},\,P_{O_2}^{\ast},\,i_{FC},\,T,$ membrane state};
+\node[oblock, below=1.0cm of voltage] (output) {\textbf{Model outputs}\\[0.15em]
+Cell voltage and internal states\\ ($P_{H_2},\,\phi_{an},\,\phi_{ca},\,W_{v,mbr}$)};
+\node[lab, above=0.2cm of anode] {$W_{H_2,in},\,i_{FC},\,T$};
+\node[lab, above=0.2cm of membrane] {$i_{FC},\,T,\,\phi_{an},\,\phi_{ca}$};
+\node[lab, above=0.2cm of cathode] {$i_{FC},\,T$};
+\draw[line] ([yshift=5pt]anode.east) -- node[above,lab] {$\phi_{an}$} ([yshift=5pt]membrane.west);
+\draw[line] ([yshift=-7pt]membrane.west) to[bend right=18]
+    node[below,lab] {$W_{v,mbr}$} ([yshift=-7pt]anode.east);
+\draw[line] ([yshift=5pt]cathode.west) -- node[above,lab] {$\phi_{ca}$} ([yshift=5pt]membrane.east);
+\draw[line] ([yshift=-7pt]cathode.west) to[bend right=18]
+    node[below,lab] {$W_{v,mbr}$} ([yshift=-7pt]membrane.east);
+\draw[line] (anode.south) |- node[pos=0.23,left,lab] {$P_{H_2}$} (voltage.west);
+\draw[line] (membrane.south) -- node[right,lab] {membrane\\state} (voltage.north);
+\node[lab, right=0.95cm of voltage] {$P_{O_2}^{\ast}=0.21P_{\mathrm{atm}}$};
+\draw[line] (voltage.south) -- (output.north);
+\end{tikzpicture}%
+}
+\caption[Block-level architecture of the simplified PEMFC model]{Block-level
+         architecture of the simplified PEMFC model. The anode, membrane, and
+         cathode subsystems exchange water and feed the voltage block, which
+         combines the Nernst potential with the three losses to produce the cell
+         voltage. The diagram makes explicit which signals are inputs (top) and
+         which are internal states.}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Model Properties and Next Steps}
+\label{sec:model-properties}
+
+The preceding subsections define a compact model with a clear structure. Its
+state vector is $\mathbf{x}=(P_{H_2},m_{w,an},m_{w,ca})$: the anode hydrogen
+pressure and the water masses stored on each side of the membrane. Its inputs are
+the load current $i_{FC}$, set by the external load and treated as a disturbance,
+and the hydrogen inlet flow $W_{H_2,in}$, the manipulated input. Its single
+measured output is the cell voltage of \eqref{eq:vfc}. Each cell carries six
+calibration parameters, $\boldsymbol{\theta}=(\xi_1,\xi_2,\xi_3,\xi_4,B,c)$.
+
+The model is deliberately simplified for control. The constant-$P_{O_2}$
+assumption and the lumped volumes keep the order low, at the cost of ignoring
+spatial gradients, oxygen transients, and liquid-water accumulation
+\cite{weber2004,zhang2017}. This makes it well suited to fast simulation,
+linearization, and controller design, while remaining accurate enough to match
+each measured cell, as the results of Chapter~\ref{Chapter4} confirm.
+
+These properties set the agenda for the rest of the methodology. First, the six
+parameters are calibrated per cell (Section~\ref{sec:identification}). Next, the
+model is linearized and its controllability and observability are analyzed
+(Section~\ref{sec:ctrb-obsv}), which determines what can be controlled and
+observed. The experimental protocols (Section~\ref{sec:protocols}) then provide
+the dynamic data used to validate the model and to fix the timescales for the
+control design of Chapter~\ref{Chapter5}.
+
+\section{Per-Cell Parameter Identification}
+\label{sec:identification}
+
+The six parameters of each cell are identified by minimizing the root-mean-square
+error (RMSE) between predicted and measured cell voltage over a calibration
+window:
+\begin{equation}
+    \min_{\boldsymbol{\theta}}\;
+    \sqrt{\frac{1}{N}\sum_{i=1}^{N}
+        \bigl(v_{\text{model}}(I_i,P_{H_2,i};\boldsymbol{\theta})-v_{\text{meas},i}\bigr)^2}.
+    \label{eq:rmse}
+\end{equation}
+Table~\ref{tab:opt-vars} lists the decision variables, their physical role, and
+the box bounds used by the optimizer. The bounds also encode the physical
+constraints $\xi_4\le 0$ (activation overvoltage grows with current),
+$B\ge 0$, and $c\ge 0$ (losses are non-negative).
+
+\begin{table}[t]
+    \centering
+    \caption[Optimization variables for the per-cell identification]{Decision
+             variables of the per-cell identification problem \eqref{eq:rmse},
+             with their role in the loss equations
+             \eqref{eq:vact}--\eqref{eq:vcon} and the search bounds. The four
+             $\xi$ coefficients shape the activation overvoltage; $B$ and $c$
+             scale the concentration and contact-resistance losses.}
+    \label{tab:opt-vars}
+    \small
+    \begin{tabular}{clcc}
+        \toprule
+        \textbf{Variable} & \textbf{Physical role} & \textbf{Unit} & \textbf{Search bounds} \\
+        \midrule
+        $\xi_1$ & Activation: constant term \eqref{eq:vact}            & V             & $[-8.0,\ 2.0]$ \\
+        $\xi_2$ & Activation: temperature term                         & V\,K$^{-1}$   & $[0,\ 3\times10^{-2}]$ \\
+        $\xi_3$ & Activation: oxygen-concentration term                & V\,K$^{-1}$   & $[-5\times10^{-3},\ 5\times10^{-3}]$ \\
+        $\xi_4$ & Activation: current term ($\le 0$)                   & V\,K$^{-1}$   & $[-1\times10^{-2},\ 0]$ \\
+        $B$     & Concentration-loss coefficient \eqref{eq:vcon}       & V             & $[0,\ 2.0]$ \\
+        $c$     & Contact / lumped ohmic resistance \eqref{eq:vohm}    & $\Omega$      & $[0,\ 1\times10^{-2}]$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+A two-stage strategy is used: \textbf{differential evolution} for the global
+search (population~20, up to 800 generations, fixed seed), followed by
+\textbf{L-BFGS-B} local refinement under the same bounds. Differential evolution
+is a population-based global optimizer that needs no gradient, which suits the
+non-convex objective; L-BFGS-B then polishes the best candidate. The optimizer
+converges for most cells within a few tens of generations
+(Figure~\ref{fig:cost-evolution}).
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{Figures/cost_evolution_exp19.png}
+    \caption[Differential-evolution convergence per cell]{Differential-evolution
+             convergence (RMSE versus generation, log scale) for the ten cells.
+             The dashed line marks the final RMSE after L-BFGS-B refinement. Most
+             cells converge within a few tens of generations; the degraded cells
+             (0--2) collapse almost immediately to a near-zero RMSE against a flat
+             zero-voltage signal, which is the first sign of a degenerate fit.}
+    \label{fig:cost-evolution}
+\end{figure}
+
+\section{State-Space Representation, Controllability and Observability}
+\label{sec:ctrb-obsv}
+
+To prepare for control and observer design, the model is linearized around an
+operating point $(\mathbf{x}_0,\mathbf{u}_0)$ and written in the standard form
+$\dot{\mathbf{x}}=A\mathbf{x}+B\mathbf{u}$, $y=C\mathbf{x}+D\mathbf{u}$.
+Controllability is assessed through the rank of $\mathcal{C}=[B\;AB\;A^2B]$ and
+observability through $\mathcal{O}=[C;\,CA;\,CA^2]$.
+
+\subsection{State-Space Representation}
+
+The linearized model uses the state, input, and output vectors
+\begin{equation*}
+    \mathbf{x} = \begin{bmatrix} P_{H_2} \\ m_{w,an} \\ m_{w,ca} \end{bmatrix},
+    \qquad
+    \mathbf{u} = \begin{bmatrix} i_{FC} \\ W_{H_2,in} \end{bmatrix},
+    \qquad
+    y = v_{fc},
+\end{equation*}
+where $P_{H_2}$ is the anode hydrogen partial pressure, $m_{w,an}$ and $m_{w,ca}$
+the water masses stored on the anode and cathode sides, $i_{FC}$ the load current
+(a disturbance imposed by the load), $W_{H_2,in}$ the hydrogen inlet flow (the
+manipulated input), and $v_{fc}$ the measured cell voltage. The four matrices
+have a direct physical reading: $A$ describes the internal dynamics (water
+exchange across the membrane; the hydrogen pressure acts as an integrator), $B$
+describes how the current drawn and the inlet flow drive the states, $C$
+describes how the states appear in the measured voltage, and $D$ is the direct
+feedthrough from the inputs to the voltage.
+
+\subsubsection*{Matrices $A$ and $B$ --- read directly from the dynamic equations}
+The three state equations of Section~\ref{sec:model} are linear in the states and
+inputs once the temperature is held constant: the hydrogen pressure balance
+\eqref{eq:anode} (with $W_{H_2,out}\approx 0$ for the dead-end anode) and the two
+water balances written on the membrane water-transport terms,
+\begin{equation*}
+    \dot{m}_{w,an} = -\beta\, m_{w,an} + \gamma\, m_{w,ca} + d_1\, i_{FC},
+    \qquad
+    \dot{m}_{w,ca} = \beta\, m_{w,an} - \gamma\, m_{w,ca} + d_2\, i_{FC},
+\end{equation*}
+with
+$\beta = D_w/(V_{an}t_m)$, $\gamma = D_w/(V_{ca}t_m)$,
+$d_1 = n_d M_v/F$, and $d_2 = (n-2n_d)M_v/(2F)$.
+No linearization is needed; the matrices follow immediately:
+\begin{equation}
+    A =
+    \begin{bmatrix}
+        0 & 0 & 0\\[2pt]
+        0 & -\beta & \gamma\\[2pt]
+        0 & \beta & -\gamma
+    \end{bmatrix},
+    \qquad
+    B =
+    \begin{bmatrix}
+        -\dfrac{R_{H_2}T\,M_{H_2}\,n}{2F\,V_{an}} & \dfrac{R_{H_2}T}{V_{an}}\\[8pt]
+        d_1 & 0\\[2pt]
+        d_2 & 0
+    \end{bmatrix}.
+    \label{eq:AB}
+\end{equation}
+The first column of $B$ is the effect of the load current (hydrogen consumption
+and electro-osmotic water displacement); the second column shows that the inlet
+flow acts on the hydrogen pressure only.
+
+\subsubsection*{Matrices $C$ and $D$ --- obtained by Jacobian linearization}
+Unlike the state equations, the output equation
+$y = v_{fc} = E(P_{H_2}) - v_{act}(i_{FC}) - v_{ohm}(i_{FC},\lambda_m(m_{w,an},m_{w,ca})) - v_{con}(i_{FC})$
+is \emph{nonlinear} in both states and inputs --- it contains logarithms of
+$P_{H_2}$ and $i_{FC}$ and the nonlinear membrane-resistivity law
+\eqref{eq:vohm} --- so $C$ and $D$ cannot be read off the equations. They are
+obtained by a first-order Taylor (Jacobian) expansion around the operating point
+$(\mathbf{x}_0,\mathbf{u}_0)$:
+\begin{equation*}
+    \delta y \;\approx\;
+    \underbrace{\left.\frac{\partial v_{fc}}{\partial \mathbf{x}}\right|_{(\mathbf{x}_0,\mathbf{u}_0)}}_{C}\,
+    \delta\mathbf{x}
+    \;+\;
+    \underbrace{\left.\frac{\partial v_{fc}}{\partial \mathbf{u}}\right|_{(\mathbf{x}_0,\mathbf{u}_0)}}_{D}\,
+    \delta\mathbf{u}.
+\end{equation*}
+The three steps are:
+\begin{enumerate}[label=\arabic*)]
+    \item \emph{Hydrogen-pressure entry.} Only the Nernst term \eqref{eq:ocv}
+          depends on $P_{H_2}$:
+          $\partial v_{fc}/\partial P_{H_2}
+           = 4.31\times10^{-5}\,T/P_{H_2,0}$.
+    \item \emph{Water-state entries.} The water masses act on the voltage through
+          the chain
+          $m_{w}\rightarrow \phi \rightarrow \lambda_m \rightarrow \sigma_m
+           \rightarrow v_{ohm}$. Differentiating this chain gives
+          \begin{equation*}
+              \frac{\partial v_{fc}}{\partial m_{w,an}}
+              = \kappa_0\,\lambda'(\phi_{an,0})\,\frac{R_v T}{2V_{an}p_{sat}(T)},
+              \qquad
+              \frac{\partial v_{fc}}{\partial m_{w,ca}}
+              = \kappa_0\,\lambda'(\phi_{ca,0})\,\frac{R_v T}{2V_{ca}p_{sat}(T)},
+          \end{equation*}
+          with
+          $\kappa_0 = i_0 t_m b_{11}
+           \exp\bigl[b_2(\tfrac{1}{303}-\tfrac{1}{T})\bigr]/(A_{fc}\,\sigma_{m,0}^{2})$
+          and $\lambda'(a)=17.81-79.70a+108a^2$ (derivative of the Springer
+          isotherm).
+    \item \emph{Input entries.} Differentiating the three loss terms with respect
+          to $i_{FC}$ at $i_0$, and noting that $W_{H_2,in}$ does not enter the
+          output equation directly:
+          \begin{equation*}
+              \frac{\partial v_{fc}}{\partial i_{FC}}
+              = -\Bigl(\frac{\xi_4 T}{i_0}
+                + \rho_{m,0}\frac{t_m}{A_{fc}} + c
+                + \frac{B}{i_{\max}-i_0}\Bigr),
+              \qquad
+              \frac{\partial v_{fc}}{\partial W_{H_2,in}} = 0.
+          \end{equation*}
+\end{enumerate}
+The resulting output matrices at the operating point are
+\begin{equation}
+    C =
+    \begin{bmatrix}
+        \dfrac{4.31\times10^{-5}\,T}{P_{H_2,0}} &
+        \kappa_0\,\lambda'(\phi_{an,0})\,\dfrac{R_v T}{2V_{an}p_{sat}(T)} &
+        \kappa_0\,\lambda'(\phi_{ca,0})\,\dfrac{R_v T}{2V_{ca}p_{sat}(T)}
+    \end{bmatrix},
+    \label{eq:Cmat}
+\end{equation}
+\begin{equation}
+    D =
+    \begin{bmatrix}
+        -\Bigl(\dfrac{\xi_4 T}{i_0}
+        + \rho_{m,0}\dfrac{t_m}{A_{fc}} + c
+        + \dfrac{B}{i_{\max}-i_0}\Bigr) & 0
+    \end{bmatrix}.
+    \label{eq:Dmat}
+\end{equation}
+In the simplified model where $\lambda_m$ is held constant, the two water-state
+entries of $C$ vanish and
+$C_{\text{red}} = \bigl[\,4.31\times10^{-5}\,T/P_{H_2,0}\;\;0\;\;0\,\bigr]$.
+
+\subsection{Controllability}
+
+Because $P_{H_2}$ is directly driven by $W_{H_2,in}$ (entry
+$R_{H_2}T/V_{an}>0$ in $B$), controllability of the full system reduces to
+controllability of the two-state water subsystem
+$(A_w,B_w)$ with
+$A_w=\bigl[\begin{smallmatrix}-\beta & \gamma\\ \beta & -\gamma\end{smallmatrix}\bigr]$
+and $B_w=[d_1;\,d_2]$ from \eqref{eq:AB}. Its controllability determinant,
+$\det(\mathcal{C}_w)=(d_1+d_2)(\beta d_1-\gamma d_2)$ with
+$d_1+d_2=nM_v/(2F)>0$, vanishes only under the single degenerate condition
+\begin{equation}
+    n_d = \frac{n\,V_{an}}{2\,(V_{an}+V_{ca})},
+    \label{eq:ctrb-cond}
+\end{equation}
+i.e.\ when electro-osmotic drag exactly cancels the back-diffusion transport.
+\textbf{The system is therefore fully controllable for all physically realistic
+drag coefficients.}
+
+\subsection{Observability}
+
+With voltage as the only measurement, the observability matrix
+$\mathcal{O}=[C;\,CA;\,CA^2]$ is built from \eqref{eq:Cmat}. In the simplified
+model the output reduces to $C_{\text{red}}$, so the
+\textbf{voltage observes the hydrogen pressure but not the two water states.}
+In the full model all three states are potentially observable, but the
+water-state sensitivities in \eqref{eq:Cmat} are small and degrade away from the
+operating point. The practical consequence is that hydrogen-pressure regulation
+can rely on a reduced-order voltage-based observer, whereas a full-state observer
+would require additional pressure or humidity sensors.
+
+\section{Experimental Protocols}
+\label{sec:protocols}
+
+All experiments were performed on the ten-cell educational PEMFC stack of the
+laboratory bench, with per-cell voltage acquisition at 1\,Hz through the serial
+data-acquisition chain developed in the project.
+\begin{itemize}
+    \item \textbf{Optimization Experiment} (April 2026): a fixed $25\,\Omega$
+          resistor is connected at $t=135$\,s and removed at $t=684$\,s, with no
+          valve-driven current control. The calibration points used for the
+          per-cell parameter identification are drawn from the loaded window of
+          this experiment.
+    \item \textbf{TR-current step experiments} (9 June 2026): the stack is left at
+          open circuit, then a fixed resistor ($3.3\,\Omega$ for Experiment~1,
+          $6.8\,\Omega$ for Experiment~4) is connected at $t=0$. The processing
+          pipeline detects the connection event from a $>100$\,mA current jump and
+          re-zeros the time axis. The current step response is fitted with the
+          exponential model
+          $I(t)=I_{\text{ss}}+\Delta I\,e^{-t/\tau_I}$, from which settling times
+          $T_{s,p\%}=-\tau_I\ln(p/100)$ are derived analytically; the
+          90\,\%$\to$10\,\% fall time is measured on the raw signal.
+\end{itemize}

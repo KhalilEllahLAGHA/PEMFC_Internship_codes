@@ -1,0 +1,248 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{tikz}
+
+\graphicspath{{./}}
+
+\title{Controllability and Observability of the PEM Fuel Cell System}
+\author[LAGHA Khalil]{LAGHA Khalil}
+\institute[GIPSA-lab / UGA]{GIPSA-lab --- Universite Grenoble Alpes}
+\date{May 2026}
+
+\begin{document}
+
+\begin{frame}
+    \begin{tikzpicture}[remember picture, overlay]
+        \node[anchor=north west, inner sep=8pt] at (current page.north west)
+            {\includegraphics[height=1.1cm]{UGAlogo.png}};
+        \node[anchor=north east, inner sep=8pt] at (current page.north east)
+            {\includegraphics[height=1.1cm]{gipsa-lablogo.jpg}};
+    \end{tikzpicture}
+    \titlepage%
+\end{frame}
+
+\begin{frame}{Outline}
+    \tableofcontents
+\end{frame}
+
+\section{State-Space Model}
+
+\begin{frame}{Linearised model}
+    We use the model
+    \[
+        \dot{\mathbf{x}} = A\mathbf{x} + B\mathbf{u}
+    \]
+    with states $\mathbf{x} = {[P_{H_2},\; m_{w,an},\; m_{w,ca}]}^{T}$ and
+    inputs $\mathbf{u} = {[i_{FC},\; W_{H_2,in}]}^{T}$.
+
+    \medskip
+    \[
+    A = \begin{bmatrix}
+        -\dfrac{k_{an}R_{H_2}T}{V_{an}} & 0 & 0 \\[8pt]
+        0 & -\dfrac{D_w}{V_{an}t_m} & \dfrac{D_w}{V_{ca}t_m} \\[8pt]
+        0 & \dfrac{D_w}{V_{an}t_m} & -\dfrac{D_w}{V_{ca}t_m}
+    \end{bmatrix}, \quad
+    B = \begin{bmatrix}
+        -\dfrac{M_{H_2}nR_{H_2}T}{2FV_{an}} & \dfrac{R_{H_2}T}{V_{an}} \\[8pt]
+        \dfrac{n_d M_v}{F} & 0 \\[8pt]
+        \dfrac{(n-2n_d)M_v}{2F} & 0
+    \end{bmatrix}
+    \]
+    \vspace{0.3em}
+    {\small $n$: number of cells in the stack. \quad
+    $n_d$: electro-osmotic drag coefficient (water molecules per proton).}
+\end{frame}
+
+\section{Controllability}
+
+\begin{frame}{What is controllability?}
+    A system is \textbf{controllable} if we can move the state
+    from an initial value to a desired value using the input $\mathbf{u}(t)$.
+
+    \medskip
+    We check the \textbf{controllability matrix}
+    \[
+        \mathcal{C} = \begin{bmatrix} B & AB & A^2B \end{bmatrix} \in \mathbb{R}^{3 \times 6}
+    \]
+    If $\operatorname{rank}(\mathcal{C}) = 3$, the system is controllable.
+\end{frame}
+
+\begin{frame}{Controllability matrix}
+    Let
+    \[
+        b_1 = -\frac{M_{H_2}nR_{H_2}T}{2FV_{an}}, \quad
+        b_2 = \frac{R_{H_2}T}{V_{an}}, \quad
+        d_1 = \frac{n_d M_v}{F}, \quad
+        d_2 = \frac{(n-2n_d)M_v}{2F}
+    \]
+    where $n$ is the number of cells in the stack.
+    so $B = \begin{bmatrix}b_1 & b_2 \\ d_1 & 0 \\ d_2 & 0\end{bmatrix}$.
+    Then
+    \[
+        AB = \begin{bmatrix}
+            -\frac{k_{an}R_{H_2}T}{V_{an}}\,b_1 & -\frac{k_{an}R_{H_2}T}{V_{an}}\,b_2 \\[6pt]
+            -\frac{D_w}{V_{an}t_m}d_1 + \frac{D_w}{V_{ca}t_m}d_2 & 0 \\[6pt]
+             \frac{D_w}{V_{an}t_m}d_1 - \frac{D_w}{V_{ca}t_m}d_2 & 0
+        \end{bmatrix}
+    \]
+    The 3rd row of $AB$ is the opposite of the 2nd row.
+\end{frame}
+
+\begin{frame}{Rank check}
+    Since $b_2 = \dfrac{R_{H_2}T}{V_{an}} > 0$, $P_{H_2}$ is directly affected by $W_{H_2,in}$.
+
+    \medskip
+    So we only need to study the water subsystem:
+    \[
+        A_w = \begin{bmatrix}
+            -\beta & \gamma \\
+            \beta & -\gamma
+        \end{bmatrix}, \qquad
+        B_w = \begin{bmatrix} d_1 \\ d_2 \end{bmatrix}
+    \]
+    Its controllability matrix is
+    \[
+        \mathcal{C}_w = \begin{bmatrix} B_w & A_w B_w \end{bmatrix}
+        = \begin{bmatrix}
+            d_1 & -\beta d_1 + \gamma d_2 \\
+            d_2 & \beta d_1 - \gamma d_2
+        \end{bmatrix}
+    \]
+    and
+    \[
+        \det(\mathcal{C}_w) = (d_1 + d_2)(\beta d_1 - \gamma d_2)
+    \]
+\end{frame}
+
+\begin{frame}{Final controllability condition}
+    Since
+    \[
+        d_1 + d_2 = \frac{nM_v}{2F} > 0
+    \]
+    the rank drops only when
+    \[
+        \beta d_1 = \gamma d_2
+    \]
+    By replacing
+    \[
+        \beta = \frac{D_w}{V_{an}t_m}, \qquad \gamma = \frac{D_w}{V_{ca}t_m}, \qquad
+        d_1 = \frac{n_d M_v}{F}, \qquad d_2 = \frac{(n-2n_d)M_v}{2F}
+    \]
+    we get
+    \[
+        \frac{2n_d}{V_{an}} = \frac{n-2n_d}{V_{ca}}
+        \quad \Longleftrightarrow \quad
+        n_d = \frac{nV_{an}}{2(V_{an}+V_{ca})}
+    \]
+    So
+    \[
+        \operatorname{rank}(\mathcal{C}) = 3
+        \quad \Longleftrightarrow \quad
+        n_d \neq \frac{nV_{an}}{2(V_{an}+V_{ca})}
+    \]
+    This means the system is controllable except for that special case.
+\end{frame}
+
+\section{Observability}
+
+\begin{frame}{What is observability?}
+    A system is \textbf{observable} if we can recover the state
+    from the measured output $y = v_{fc}$.
+
+    \medskip
+    Here
+    \[
+        y = C\mathbf{x} + Du,
+    \]
+    where $C$ is the Jacobian of $v_{fc}$ with respect to the states:
+    \[
+        C = \begin{bmatrix}
+            \dfrac{\partial v_{fc}}{\partial P_{H_2}} &
+            \dfrac{\partial v_{fc}}{\partial m_{w,an}} &
+            \dfrac{\partial v_{fc}}{\partial m_{w,ca}}
+        \end{bmatrix}
+        = \begin{bmatrix} c_1 & c_2 & c_3 \end{bmatrix}
+    \]
+    We test observability with
+    \[
+        \mathcal{O} = \begin{bmatrix} C \\ CA \\ CA^2 \end{bmatrix}
+    \]
+\end{frame}
+
+\begin{frame}{Full C matrix}
+    From
+    \[
+        v_{fc} = E(P_{H_2}) - v_{act}(i_{FC}) - v_{ohm}(i_{FC},\lambda_m) - v_{con}(i_{FC})
+    \]
+    only $E$ and $v_{ohm}$ depend on the states.
+
+    \medskip
+    At the operating point $(\mathbf{x}_0,\mathbf{u}_0)$:
+    \[
+        C = \begin{bmatrix}
+            \dfrac{4.31\times 10^{-5}T}{P_{H_2,0}} &
+            \kappa_0\,\lambda'(\phi_{an,0})\,\dfrac{R_v T}{2V_{an}p_{sat}(T)} &
+            \kappa_0\,\lambda'(\phi_{ca,0})\,\dfrac{R_v T}{2V_{ca}p_{sat}(T)}
+        \end{bmatrix}
+    \]
+    where
+    \[
+        \kappa_0 = \frac{i_0 t_m}{A_{fc}\,\sigma_{m,0}^{2}}\,b_{11}
+        \exp\!\left[b_2\!\left(\frac{1}{303}-\frac{1}{T}\right)\right]
+    \]
+    and
+    \[
+        \lambda'(a) = 17.81 - 79.70a + 108a^2, \qquad
+        \sigma_{m,0} = \sigma_m(\lambda_{m,0},T)
+    \]
+\end{frame}
+
+\begin{frame}{Reduced model}
+    If $\lambda_m$ is kept constant (for example $\lambda_m = 14$),
+    then $v_{fc}$ does not depend on $m_{w,an}$ or $m_{w,ca}$.
+
+    \medskip
+    In that case
+    \[
+        C_{red} = \begin{bmatrix}
+            \dfrac{4.31\times 10^{-5}T}{P_{H_2,0}} & 0 & 0
+        \end{bmatrix}
+    \]
+
+    \medskip
+    \begin{itemize}
+        \item In the full model, the three terms of $C$ can be non-zero.
+        \item In the reduced model, only $P_{H_2}$ appears in the output.
+    \end{itemize}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Summary}
+    \begin{columns}
+        \column{0.5\textwidth}
+        \textbf{Controllability}:
+        \begin{itemize}
+            \item $P_{H_2}$ is directly affected by $W_{H_2,in}$ and also by $i_{FC}$.
+            \item The water subsystem is controllable if
+                  $n_d \neq \dfrac{nV_{an}}{2(V_{an}+V_{ca})}$.
+            \item So the full system is controllable except in that case.
+        \end{itemize}
+        \column{0.5\textwidth}
+        \textbf{Observability}:
+        \begin{itemize}
+            \item In the full hydration-dependent voltage model, $C$ has three non-zero terms.
+            \item In the reduced model with fixed $\lambda_m$, the true output row is
+                  $C_{red} = \begin{bmatrix} \dfrac{4.31\times 10^{-5}T}{P_{H_2,0}} & 0 & 0 \end{bmatrix}$.
+            \item So voltage alone observes $P_{H_2}$, but not the two water states.
+        \end{itemize}
+    \end{columns}
+    \medskip
+    The observability result depends on the voltage model used.
+\end{frame}
+
+\end{document}

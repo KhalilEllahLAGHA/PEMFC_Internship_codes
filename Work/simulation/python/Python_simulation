@@ -1,0 +1,222 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ============================================================
+# Simplified PEMFC static semi-empirical model
+# Inputs  : P_H2 [atm], I_FC [A]
+# Fixed   : P_O2 [atm], T [K], lambda_m [-]
+# Outputs : V_fc, E, activation / ohmic / concentration losses
+# ============================================================
+
+# -----------------------------
+# Parameters
+# -----------------------------
+params = {
+    # Operating conditions
+    "T_K": 343.15,          # 70 C
+    "P_O2_atm": 0.21,       # constant oxygen partial pressure (open air assumption)
+    "lambda_m": 14.0,       # fixed membrane water content (fully hydrated assumption)
+
+    # Geometry / stack data
+    "A_fc_m2": 25e-4,       # 25 cm^2
+    "t_m_m": 178e-6,        # 178 micrometers
+
+    # Optimized empirical parameters (from your reference table)
+    "xi1": -0.948,
+    "xi2": 0.0047,
+    "xi3": 7.45e-5,
+    "xi4": -1.88e-4,
+    "B": 0.0182,
+    "c": 0.00062,
+
+    # Chosen modeling parameter
+    "i_max_A": 20.0         # limiting current used in concentration loss
+}
+
+# -----------------------------
+# Helper: PEMFC model
+# -----------------------------
+def pemfc_model(P_H2_atm, I_FC_A, p):
+    """
+    Computes PEMFC voltage and losses for vector inputs P_H2_atm and I_FC_A.
+
+    Returns:
+        dict with keys:
+        E, v_act, v_ohm, v_con, v_loss_sum, V_fc
+    """
+    T = p["T_K"]
+    P_O2 = max(p["P_O2_atm"], 1e-12)
+    lam = p["lambda_m"]
+    A_fc = p["A_fc_m2"]
+    t_m = p["t_m_m"]
+    xi1, xi2, xi3, xi4 = p["xi1"], p["xi2"], p["xi3"], p["xi4"]
+    B, c = p["B"], p["c"]
+    i_max = p["i_max_A"]
+
+    P_H2_atm = np.asarray(P_H2_atm, dtype=float)
+    I_FC_A = np.asarray(I_FC_A, dtype=float)
+
+    # Safety for logarithms
+    P_H2_safe = np.maximum(P_H2_atm, 1e-9)
+    I_safe = np.maximum(I_FC_A, 1e-6)
+
+    # --------------------------------------------------------
+    # 1) Open-circuit / reversible voltage
+    #    E = 1.229 - 0.85e-3(T-298.15) + 4.3085e-5 T [ln(PH2) + 1/2 ln(PO2)]
+    # --------------------------------------------------------
+    E = (
+        1.229
+        - 0.85e-3 * (T - 298.15)
+        + 4.3085e-5 * T * (np.log(P_H2_safe) + 0.5 * np.log(P_O2))
+    )
+
+    # --------------------------------------------------------
+    # 2) Oxygen concentration term used in activation loss
+    #    C_O2 = PO2 / (5.1e6 * exp(-498/T))
+    # --------------------------------------------------------
+    C_O2 = P_O2 / (5.1e6 * np.exp(-498.0 / T))
+
+    # --------------------------------------------------------
+    # 3) Activation loss
+    #    v_act = xi1 + xi2 T + xi3 T ln(CO2) + xi4 T ln(I_FC)
+    # --------------------------------------------------------
+    v_act = xi1 + xi2 * T + xi3 * T * np.log(C_O2) + xi4 * T * np.log(I_safe)
+
+    # --------------------------------------------------------
+    # 4) Membrane conductivity and ohmic loss
+    #    sigma_m = (0.5139*lambda_m - 0.326) * exp[1268(1/303.15 - 1/T)]
+    #    rho_m = 1/sigma_m
+    #    v_ohm = I_FC * (rho_m * t_m / A_fc + c)
+    # --------------------------------------------------------
+    sigma_m = (0.5139 * lam - 0.326) * np.exp(1268.0 * (1.0 / 303.15 - 1.0 / T))
+    sigma_m = max(sigma_m, 1e-8)  # avoid division by zero
+    rho_m = 1.0 / sigma_m
+    v_ohm = I_FC_A * (rho_m * t_m / A_fc + c)
+
+    # --------------------------------------------------------
+    # 5) Concentration loss
+    #    theta = I_FC / i_max
+    #    v_con = -B ln(1 - theta)
+    # --------------------------------------------------------
+    theta = np.clip(I_FC_A / i_max, 0.0, 0.999999)
+    v_con = -B * np.log(1.0 - theta)
+
+    # Total losses and cell voltage
+    v_loss_sum = v_act + v_ohm + v_con
+    V_fc = E - v_loss_sum
+
+    return {
+        "E": E,
+        "v_act": v_act,
+        "v_ohm": v_ohm,
+        "v_con": v_con,
+        "v_loss_sum": v_loss_sum,
+        "V_fc": V_fc
+    }
+
+# -----------------------------
+# Plotting helper
+# -----------------------------
+def plot_experiment(t, P_H2, I_FC, results, title):
+    fig, axes = plt.subplots(3, 1, figsize=(11, 10), sharex=True)
+
+    # Inputs
+    ax1 = axes[0]
+    ax1.plot(t, P_H2, label=r"$P_{H_2}$ [atm]", linewidth=2)
+    ax1.set_ylabel(r"$P_{H_2}$ [atm]")
+    ax1.grid(True, alpha=0.3)
+
+    ax1b = ax1.twinx()
+    ax1b.plot(t, I_FC, "--", label=r"$I_{FC}$ [A]", linewidth=2)
+    ax1b.set_ylabel(r"$I_{FC}$ [A]")
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax1b.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="best")
+    ax1.set_title(title)
+
+    # Voltage and E
+    ax2 = axes[1]
+    ax2.plot(t, results["V_fc"], label=r"$V_{fc}$", linewidth=2)
+    ax2.plot(t, results["E"], "--", label=r"$E$ (open-circuit)", linewidth=2)
+    ax2.set_ylabel("Voltage [V]")
+    ax2.grid(True, alpha=0.3)
+    ax2.legend(loc="best")
+
+    # Losses
+    ax3 = axes[2]
+    ax3.plot(t, results["v_act"], label=r"$v_{act}$", linewidth=2)
+    ax3.plot(t, results["v_ohm"], label=r"$v_{ohm}$", linewidth=2)
+    ax3.plot(t, results["v_con"], label=r"$v_{con}$", linewidth=2)
+    ax3.plot(t, results["v_loss_sum"], "k--", label=r"$v_{act}+v_{ohm}+v_{con}$", linewidth=2)
+    ax3.set_xlabel("Time [s]")
+    ax3.set_ylabel("Loss [V]")
+    ax3.grid(True, alpha=0.3)
+    ax3.legend(loc="best")
+
+    plt.tight_layout()
+    plt.show()
+
+# ============================================================
+# Experiment 1:
+# P_H2 constant, I_FC changes linearly
+# ============================================================
+t1 = np.linspace(0, 100, 500)
+P_H2_1 = 2.0 * np.ones_like(t1)            # constant 2 atm
+I_FC_1 = np.linspace(0.5, 15.0, len(t1))   # linearly increasing current
+
+res1 = pemfc_model(P_H2_1, I_FC_1, params)
+plot_experiment(
+    t1, P_H2_1, I_FC_1, res1,
+    "Experiment 1: Constant $P_{H_2}$, linearly increasing $I_{FC}$"
+)
+
+# ============================================================
+# Experiment 2:
+# P_H2 changes 3 times: 2 atm -> 3 atm -> 1 atm
+# I_FC constant
+# ============================================================
+t2 = np.linspace(0, 120, 600)
+P_H2_2 = np.piecewise(
+    t2,
+    [t2 < 40, (t2 >= 40) & (t2 < 80), t2 >= 80],
+    [2.0, 3.0, 1.0]
+)
+I_FC_2 = 8.0 * np.ones_like(t2)            # constant current
+
+res2 = pemfc_model(P_H2_2, I_FC_2, params)
+plot_experiment(
+    t2, P_H2_2, I_FC_2, res2,
+    "Experiment 2: Stepped $P_{H_2}$ (2 -> 3 -> 1 atm), constant $I_{FC}$"
+)
+
+# ============================================================
+# Experiment 3:
+# Both P_H2 and I_FC change
+# ============================================================
+t3 = np.linspace(0, 120, 600)
+
+# P_H2: step-like variations
+P_H2_3 = np.piecewise(
+    t3,
+    [t3 < 30, (t3 >= 30) & (t3 < 60), (t3 >= 60) & (t3 < 90), t3 >= 90],
+    [2.0, 1.5, 3.0, 2.2]
+)
+
+# I_FC: piecewise-ramp
+I_FC_3 = np.piecewise(
+    t3,
+    [t3 < 30, (t3 >= 30) & (t3 < 60), (t3 >= 60) & (t3 < 90), t3 >= 90],
+    [
+        lambda x: 2.0 + (8.0 - 2.0) / 30.0 * x,         # 2 -> 8 A
+        lambda x: 8.0 + (12.0 - 8.0) / 30.0 * (x - 30), # 8 -> 12 A
+        lambda x: 12.0 - (12.0 - 5.0) / 30.0 * (x - 60),# 12 -> 5 A
+        lambda x: 5.0 + (10.0 - 5.0) / 30.0 * (x - 90)  # 5 -> 10 A
+    ]
+)
+
+res3 = pemfc_model(P_H2_3, I_FC_3, params)
+plot_experiment(
+    t3, P_H2_3, I_FC_3, res3,
+    "Experiment 3: Both $P_{H_2}$ and $I_{FC}$ vary"
+)

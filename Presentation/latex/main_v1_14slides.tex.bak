@@ -1,0 +1,399 @@
+%==============================================================================
+%  Final Defense Presentation — PEMFC Modeling and Control
+%  Universite Grenoble Alpes — M1 EECS internship
+%  Rules: see ../presentation_rules.md  (20 min talk, key equations/results only)
+%  Build:  pdflatex main  (run twice)   -> deliver main.pdf
+%==============================================================================
+\documentclass[aspectratio=169,11pt]{beamer}
+
+% ----------------------------- Theme -----------------------------------------
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}     % hide nav icons
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{bibliography item}{}
+
+% A clean UGA-style blue
+\definecolor{ugablue}{RGB}{0,80,140}
+\definecolor{ugagray}{RGB}{90,90,90}
+\setbeamercolor{structure}{fg=ugablue}
+\setbeamercolor{frametitle}{bg=ugablue,fg=white}
+\setbeamercolor{title}{bg=ugablue,fg=white}
+\setbeamercolor{subtitle}{bg=ugablue,fg=white}
+\setbeamercolor{block title}{bg=ugablue,fg=white}
+\setbeamercolor{block body}{bg=ugablue!6,fg=black}
+\setbeamerfont{frametitle}{size=\large}
+\setbeamertemplate{itemize items}[circle]
+
+% ----------------------------- Packages --------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.16}
+
+% ----------------------------- Title data ------------------------------------
+\title[PEMFC Modeling and Control]{Modeling and Control of a PEM Fuel Cell Stack}
+\subtitle{From physical principles to per-cell calibration and PI-based power control}
+\author[K.~E.~Lagha]{Khalil Ellah \textsc{Lagha}}
+\institute[UGA / GIPSA-lab]{%
+    Universit\'e Grenoble Alpes --- GIPSA-lab, Infinity Team\\[2pt]
+    \small Supervisor: Prof.\ Emmanuel \textsc{Witrant}}
+\date{M1 EECS Internship Defense --- June 2026}
+
+%==============================================================================
+\begin{document}
+
+% ----------------------------- 1. Title --------------------------------------
+{
+\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+    \begin{columns}
+        \column{0.5\textwidth}\hfill\includegraphics[height=1.1cm]{UGAlogo.png}
+        \column{0.5\textwidth}\includegraphics[height=1.1cm]{gipsa-lablogo.jpg}\hfill
+    \end{columns}
+    \vfill
+    \titlepage
+    \vfill
+\end{frame}
+}
+
+% ----------------------------- 2. Outline ------------------------------------
+\begin{frame}{Outline}
+    \begin{columns}[T]
+        \column{0.5\textwidth}
+        \begin{enumerate}
+            \item Context \& motivation
+            \item PEMFC modeling
+            \item Parameter identification \& validation
+            \item State-space analysis
+        \end{enumerate}
+        \column{0.5\textwidth}
+        \begin{enumerate}
+            \setcounter{enumi}{4}
+            \item Dynamic (step) response
+            \item DC/DC boost converter \& PI control
+            \item Results
+            \item Remaining work \& conclusion
+        \end{enumerate}
+    \end{columns}
+    \vfill
+    \begin{block}{Goal of the internship}
+        Build a control-oriented model of a PEMFC stack, calibrate it from bench
+        data, and propose a PI-based architecture to control its power output.
+    \end{block}
+\end{frame}
+
+% ----------------------------- 3. Context ------------------------------------
+\begin{frame}{Context \& Motivation}
+    \begin{columns}[T]
+        \column{0.56\textwidth}
+        \textbf{Why PEM fuel cells?}
+        \begin{itemize}
+            \item Clean, high-efficiency power: $\mathrm{H_2 + \tfrac{1}{2}O_2 \to H_2O}$ + electricity + heat
+            \item Low temperature, high power density, fast start-up
+            \item Key for transport \& stationary applications
+        \end{itemize}
+        \vspace{0.4em}
+        \textbf{The challenge}
+        \begin{itemize}
+            \item Output voltage is \emph{low} and varies strongly with load
+            \item Sensitive to input (gas) and load variations
+            \item[$\Rightarrow$] needs a \textbf{model} + \textbf{feedback control}
+                  of the power output through a DC/DC converter
+        \end{itemize}
+        \column{0.44\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{pemfc_operation.png}\\
+        \scriptsize Operating principle of a PEM fuel cell
+    \end{columns}
+\end{frame}
+
+% ----------------------------- 4. PEMFC Modeling -----------------------------
+\begin{frame}{PEMFC Modeling --- Key Equations}
+    \textbf{Reversible cell potential} (Nernst):
+    \begin{equation*}
+        E_{Cell} = 1.229 - 0.85\!\times\!10^{-3}(T-298.15)
+        + 4.31\!\times\!10^{-5}\,T\!\left[\ln p_{H_2} + \tfrac{1}{2}\ln p_{O_2}\right]
+    \end{equation*}
+
+    \textbf{Cell voltage} = reversible voltage $-$ three losses:
+    \begin{equation*}
+        V_{Fc} = E_{Cell} - \underbrace{\eta_{act}}_{\text{activation}}
+                          - \underbrace{\eta_{ohm}}_{\text{ohmic}}
+                          - \underbrace{\eta_{con}}_{\text{concentration}}
+    \end{equation*}
+
+    \textbf{Stack voltage and power:}
+    \begin{equation*}
+        V_s = N_{cell}\cdot V_{Fc},
+        \qquad
+        P_{Fc} = I \cdot V_{Fc}
+    \end{equation*}
+
+    \begin{block}{Modeled system}
+        Educational \textbf{50\,W, 10-cell} PEMFC stack --- six semi-empirical
+        parameters per cell ($\xi_1,\xi_2,\xi_3,\xi_4,B,c$).
+    \end{block}
+\end{frame}
+
+% ----------------------------- 5. Identification -----------------------------
+\begin{frame}{Parameter Identification \& Validation}
+    \begin{columns}[T]
+        \column{0.5\textwidth}
+        \textbf{Method} --- per-cell fit of the six parameters:
+        \begin{itemize}
+            \item Minimize RMSE between model \& measured voltage
+            \item Two-stage: \emph{Differential Evolution} + \emph{L-BFGS-B}
+            \item Calibrated on the \textbf{Optimization Experiment}
+        \end{itemize}
+        \vspace{0.3em}
+        \textbf{Results}
+        \begin{itemize}
+            \item Healthy cells: RMSE $<12$\,mV (mean $8.0$\,mV)
+            \item Doubles as a \textbf{diagnosis}: cells 0--2 collapse under
+                  load $\Rightarrow$ degraded hardware
+        \end{itemize}
+        \column{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{comparison_exp19_stack.png}\\
+        \scriptsize Stack voltage, current \& $H_2$ pressure: measured vs.\ model
+    \end{columns}
+\end{frame}
+
+% ----------------------------- 6. State-space --------------------------------
+\begin{frame}{State-Space Analysis --- Controllability \& Observability}
+    Linearized model: $\dot{\mathbf{x}}=A\mathbf{x}+B\mathbf{u}$,\;
+    $y=C\mathbf{x}+D\mathbf{u}$ \quad with\quad
+    $\mathbf{x}=[\,P_{H_2},\,m_{w,an},\,m_{w,ca}\,]^{\!\top}$,\;
+    $\mathbf{u}=[\,i_{FC},\,W_{H_2,in}\,]^{\!\top}$,\; $y=v_{fc}$.
+    \vspace{0.3em}
+    \begin{columns}[T]
+        \column{0.46\textwidth}
+        \begin{block}{$A$, $B$ --- from the dynamic equations}
+            \footnotesize Read directly: hydrogen-pressure + two water balances
+            (linear at constant $T$).
+        \end{block}
+        \column{0.54\textwidth}
+        \begin{block}{$C$, $D$ --- by Jacobian linearization}
+            \footnotesize Voltage output is \emph{nonlinear} (logs, membrane
+            resistivity) $\Rightarrow$ first-order Taylor expansion.
+        \end{block}
+    \end{columns}
+    \vspace{0.2em}
+    \begin{itemize}
+        \item \textbf{Controllable} for all physically realistic drag
+              coefficients $n_d$.
+        \item Voltage-only output \textbf{observes} $P_{H_2}$ but \emph{not} the
+              water states $\Rightarrow$ reduced-order observer suffices for
+              hydrogen-pressure regulation.
+    \end{itemize}
+\end{frame}
+
+% ----------------------------- 7. Step response ------------------------------
+\begin{frame}{Dynamic Response --- Current Step (Load Steps)}
+    \begin{columns}[T]
+        \column{0.5\textwidth}
+        \textbf{Experiment:} OCV $\to$ resistor connected at $t=0$
+        ($3.3\,\Omega$ and $6.8\,\Omega$), current response fitted by
+        $I(t)=I_{ss}+\Delta I\,e^{-t/\tau_I}$.
+        \vspace{0.4em}
+        \begin{center}
+        \footnotesize
+        \begin{tabular}{lcc}
+            \toprule
+            & $3.3\,\Omega$ & $6.8\,\Omega$ \\
+            \midrule
+            $\tau_I$ [s]        & 8.2  & 10.3 \\
+            $T_{s,2\%}$ [s]     & 32.0 & 40.2 \\
+            \bottomrule
+        \end{tabular}
+        \end{center}
+        \begin{itemize}
+            \item Slower at lower load (lower current density)
+            \item Sets the \textbf{target bandwidth} for closed-loop control
+        \end{itemize}
+        \column{0.5\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{response_time_plot.png}\\
+        \scriptsize Current step response: data, exponential fit, settling band
+    \end{columns}
+\end{frame}
+
+% ----------------------------- 8. Boost converter ----------------------------
+\begin{frame}{DC/DC Boost Converter \& State-Space Model}
+    The low stack voltage feeds a \textbf{boost converter} (step-up):
+    \begin{equation*}
+        V_{out} = \frac{1}{1-T}\,V_{in}, \qquad T = \text{duty cycle}\in[0,1)
+    \end{equation*}
+    \begin{columns}[T]
+        \column{0.54\textwidth}
+        Two switching topologies (switch ON / OFF), averaged over one PWM period
+        $\Rightarrow$ state $x=[\,i_L\;\;V_{out}\,]^{\top}$:
+        \begin{equation*}
+            \dot{x}=
+            \begin{bmatrix} 0 & \frac{T-1}{L}\\[4pt] \frac{1-T}{C} & -\frac{1}{RC}\end{bmatrix}x
+            +\begin{bmatrix} \frac{1}{L}\\[4pt] 0\end{bmatrix}u,
+            \;\;
+            y=\begin{bmatrix}0&1\end{bmatrix}x
+        \end{equation*}
+        \column{0.46\textwidth}
+        \centering
+        \footnotesize Voltage gain vs.\ duty cycle\\[2pt]
+        \begin{tabular}{cc}
+            \toprule
+            $T$ & $V_{out}/V_{in}$ \\
+            \midrule
+            0.3 & 1.43 \\
+            0.5 & 2.00 \\
+            0.6 & 2.50 \\
+            \bottomrule
+        \end{tabular}
+    \end{columns}
+    \vspace{0.3em}
+    \begin{block}{Key idea}
+        The PEMFC is \emph{neither} a current \emph{nor} a voltage source ---
+        the \textbf{regulated converter output} is shaped into one by control.
+    \end{block}
+\end{frame}
+
+% ----------------------------- 9. PI control ---------------------------------
+\begin{frame}{PI Control --- Two Interfacing Approaches}
+    PI control law on the converter duty cycle:
+    \begin{equation*}
+        u = K_P\,e + K_I\!\int\! e\,dt
+    \end{equation*}
+    \begin{columns}[T]
+        \column{0.5\textwidth}
+        \begin{block}{Current source \textnormal{(article approach \cite{derbeli2017})}}
+            \footnotesize
+            \begin{itemize}
+                \item Regulate \textbf{inductor current} $I_L \to I_{REF}$
+                \item $e = I_{REF}-I_L$, e.g.\ $I_{REF}=9.74$\,A (max power)
+                \item Protects the stack from \textbf{overcurrent}
+            \end{itemize}
+        \end{block}
+        \column{0.5\textwidth}
+        \begin{block}{Voltage source \textnormal{(alternative)}}
+            \footnotesize
+            \begin{itemize}
+                \item Regulate \textbf{output voltage} $V_{out} \to V_{REF}$
+                \item $e = V_{REF}-V_{out}$
+                \item Natural for \textbf{output-voltage regulation}
+            \end{itemize}
+        \end{block}
+    \end{columns}
+    \vspace{0.3em}
+    \centering\footnotesize
+    Same PI structure \& converter model --- differ only in the feedback variable
+    ($I_L$ vs.\ $V_{out}$).
+\end{frame}
+
+% ----------------------------- 10. Results -----------------------------------
+\begin{frame}{Results --- Characteristic Curve \& PI Tracking}
+    \begin{columns}[T]
+        \column{0.5\textwidth}
+        \centering
+        \includegraphics[width=0.96\linewidth]{pemfc_polarization_curve.png}\\
+        \scriptsize Polarization / characteristic curve\\
+        \footnotesize Maximum power $\approx \mathbf{54}$\,W at $\mathbf{9.74}$\,A
+        \column{0.5\textwidth}
+        \centering
+        \footnotesize Expected PI current tracking \cite{derbeli2017}\\[2pt]
+        \begin{tikzpicture}
+        \begin{axis}[
+            width=6.2cm, height=4.2cm,
+            xlabel={\scriptsize time [ms]}, ylabel={\scriptsize $I_L$ [A]},
+            xmin=0,xmax=800, ymin=0, ymax=11,
+            xtick={0,400,800}, ytick={0,9.74},
+            yticklabels={0,$I_{REF}$}, tick label style={font=\scriptsize},
+            label style={font=\scriptsize},
+            every axis plot/.append style={thick}]
+        \addplot[ugablue,domain=0:800,samples=80]{9.74*(1-exp(-x/120))};
+        \addplot[dashed,gray,domain=0:800]{9.74};
+        \draw[densely dotted] (axis cs:400,0) -- (axis cs:400,9.45);
+        \end{axis}
+        \end{tikzpicture}\\
+        \footnotesize Smooth rise to $I_{REF}$ in $\approx$\,400\,ms,\\
+        good disturbance rejection (dSPACE 1104)
+    \end{columns}
+    \vspace{0.2em}
+    \begin{itemize}\footnotesize
+        \item Model reproduces the measured stack behavior (healthy cells RMSE $<12$\,mV)
+        \item Boost + PI delivers a stable, regulated output under load variations
+    \end{itemize}
+\end{frame}
+
+% ----------------------------- 11. Remaining work ----------------------------
+\begin{frame}{Remaining Work}
+    \begin{block}{Not yet implemented --- next steps on the bench}
+    \begin{enumerate}
+        \item \textbf{PI controller tuning} \\
+              \footnotesize Demonstrate how the gains $K_P$, $K_I$ are obtained
+              (online procedure: increase $K_P$ to sustained oscillation
+              $K_{PU}$ $\to$ $K_P=K_{PU}/2$ $\to$ decrease $T_i$ to $T_{iU}$
+              $\to$ $T_i = 2\,T_{iU}$).
+        \item \textbf{PRBS test on the valve} \\
+              \footnotesize Apply a Pseudo-Random Binary Sequence to the valve
+              input and analyze the resulting \textbf{current response} of the
+              system (system identification of the gas-supply path).
+    \end{enumerate}
+    \end{block}
+    \vspace{0.4em}
+    \centering
+    \footnotesize These close the loop between the validated model and a fully
+    tuned, experimentally demonstrated controller.
+\end{frame}
+
+% ----------------------------- 12. Conclusion --------------------------------
+\begin{frame}{Conclusion \& Perspectives}
+    \textbf{Achieved}
+    \begin{itemize}
+        \item Reduced control-oriented PEMFC model (Nernst + 3 losses + lumped dynamics)
+        \item Per-cell calibration (RMSE $<12$\,mV) \emph{and} cell-degradation diagnosis
+        \item Explicit state-space model; system controllable, $P_{H_2}$ observable from voltage
+        \item Current step-response characterization ($\tau_I\approx 8$--$10$\,s)
+        \item PI-based boost-converter control: current-source \& voltage-source interfacing
+    \end{itemize}
+    \vspace{0.3em}
+    \textbf{Perspectives}
+    \begin{itemize}
+        \item Implement \& tune the PI loop on the bench; run the PRBS valve test
+        \item Extend the model: oxygen transients, liquid water, gas-supply delays
+        \item Replace degraded cells $\to$ stack-level closed-loop experiments
+    \end{itemize}
+\end{frame}
+
+% ----------------------------- 13. Thank you ---------------------------------
+{
+\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+    \centering
+    \vfill
+    {\Huge \textcolor{ugablue}{\textbf{Thank you for your attention}}}\\[1em]
+    {\Large Questions?}
+    \vfill
+    \footnotesize Khalil Ellah Lagha --- Universit\'e Grenoble Alpes / GIPSA-lab\\
+    Supervisor: Prof.\ Emmanuel Witrant
+    \vfill
+\end{frame}
+}
+
+% ----------------------------- References (backup) ---------------------------
+\begin{frame}[plain]{Reference}
+    \footnotesize
+    \begin{thebibliography}{9}
+        \bibitem{derbeli2017} M.~Derbeli, M.~Farhat, O.~Barambones, L.~Sbita,
+        \emph{Control of Proton Exchange Membrane Fuel Cell (PEMFC) Power System
+        Using PI Controller}, IEEE, 2017.
+    \end{thebibliography}
+\end{frame}
+
+\end{document}

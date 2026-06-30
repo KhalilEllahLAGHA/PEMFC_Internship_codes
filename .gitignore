@@ -1,0 +1,49 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Virtual environments (do NOT commit installed packages)
+.venv/
+venv/
+env/
+**/.venv/
+
+# ── LaTeX build artifacts ───────────────────────────────────────────────────
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+*.synctex.gz
+*.synctex(busy)
+*.fdb_latexmk
+*.bbl
+*.blg
+*.run.xml
+*.nav
+*.snm
+*.vrb
+*.bcf
+
+# ── Third-party copyrighted papers (not redistributed in this public repo) ──
+Research/Articles/*.pdf
+
+# ── Internal notes / planning docs — not published ──────────────────────────
+*.md
+
+# ── OS / editor cruft ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+
+# ── Research papers & notes — not published ─────────────────────────────────
+Research/

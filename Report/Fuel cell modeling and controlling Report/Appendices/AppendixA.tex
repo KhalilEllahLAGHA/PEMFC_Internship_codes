@@ -1,0 +1,80 @@
+% Appendix A — OCV Thermodynamic Derivation
+
+\chapter{Derivation of the Open-Circuit Voltage}
+
+\label{app:ocv}
+
+The global hydrogen--oxygen reaction is
+$\mathrm{H_2+\tfrac{1}{2}O_2\rightarrow H_2O}$. At non-standard conditions the
+Gibbs free energy change is
+\[
+    \Delta g_f = \Delta g_f^0
+    - \bar{R}T_{fc}\ln\!\left(\frac{p_{H_2}\,p_{O_2}^{1/2}}{p_{H_2O}}\right),
+\]
+and for a reversible cell $\Delta g_f=-2FE$, so
+\[
+    E = -\frac{\Delta g_f^0}{2F}
+      + \frac{\bar{R}T_{fc}}{2F}
+        \ln\!\left(\frac{p_{H_2}\,p_{O_2}^{1/2}}{p_{H_2O}}\right).
+\]
+
+\section*{Standard Voltage}
+
+Taking liquid water as the product at $25\,^{\circ}$C:
+\[
+    E^0=-\frac{\Delta g_f^0}{2F}
+       =-\frac{-237{,}200}{2\times 96{,}485}\approx 1.229\;\mathrm{V}.
+\]
+Table~\ref{tab:gibbs} lists $\Delta g_f^0$ at several temperatures.
+
+\begin{table}[H]
+\centering
+\caption{Gibbs free energy change of the hydrogen fuel cell reaction at various temperatures \cite{pukrushpan2003}.}
+\label{tab:gibbs}
+\begin{tabular}{ccc}
+\toprule
+\textbf{Product} & \textbf{Temperature ($^{\circ}$C)} & $\boldsymbol{\Delta g_f^0}$ \textbf{(kJ/mol)} \\
+\midrule
+Liquid & 25   & $-237.2$ \\
+Liquid & 80   & $-228.2$ \\
+Gas    & 80   & $-226.1$ \\
+Gas    & 100  & $-225.2$ \\
+Gas    & 200  & $-220.4$ \\
+Gas    & 600  & $-199.6$ \\
+Gas    & 1000 & $-177.4$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section*{Temperature Coefficient}
+
+From $\Delta G^0=\Delta H^0-T\Delta S^0$, with
+\[
+    \Delta S^0 = S^0_{\mathrm{H_2O(l)}} - S^0_{\mathrm{H_2(g)}}
+               - \tfrac{1}{2}S^0_{\mathrm{O_2(g)}}
+              = 69.95-130.7-102.58 \approx -163.3\;\mathrm{J\,mol^{-1}K^{-1}}
+\]
+for the liquid-water reaction,
+\[
+    \frac{\Delta S^0}{2F}\approx\frac{-163.3}{192{,}970}
+    \approx -0.85\times10^{-3}\;\mathrm{V\,K^{-1}}.
+\]
+
+\section*{Nernst Pressure Correction}
+
+Assuming $p_{H_2O}=1$ (liquid product):
+\[
+    \frac{\bar{R}T_{fc}}{2F}\ln\!\bigl(p_{H_2}\,p_{O_2}^{1/2}\bigr)
+    = \frac{8.314\,T_{fc}}{192{,}970}
+      \left[\ln p_{H_2}+\tfrac{1}{2}\ln p_{O_2}\right]
+    \approx 4.31\times10^{-5}\,T_{fc}
+      \left[\ln p_{H_2}+\tfrac{1}{2}\ln p_{O_2}\right].
+\]
+
+\section*{Final Expression}
+
+Combining all terms yields Equation~\eqref{eq:ocv} of the main text:
+\[
+    E = 1.229 - 0.85\times10^{-3}(T_{fc}-298.15)
+          + 4.31\times10^{-5}\,T_{fc}\!\left[\ln p_{H_2}+\tfrac{1}{2}\ln p_{O_2}\right]\;\text{V}.
+\]

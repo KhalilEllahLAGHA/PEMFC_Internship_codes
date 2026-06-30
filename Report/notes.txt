@@ -1,0 +1,5 @@
+Simplified instead of reduced,
+table for the variable we re optimizing
+3.1.5 model properties and next step
+state space analysis in 4th chapter should be inside the methodology
+in controlling part, change the titles of article approach and proposed one to a better more generalized titles

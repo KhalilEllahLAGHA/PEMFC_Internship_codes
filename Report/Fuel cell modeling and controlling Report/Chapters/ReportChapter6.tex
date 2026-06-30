@@ -1,0 +1,39 @@
+% Chapter 6 — Conclusion & Perspectives
+
+\chapter{Conclusion \& Perspectives}
+
+\label{Chapter6}
+
+This work developed a simplified control-oriented model of a ten-cell PEMFC stack,
+calibrated it per cell on the Optimization Experiment, derived and analyzed its
+linearized state-space representation, characterized its dynamic current response
+to load steps, and proposed a PI-based control architecture for the PEMFC power
+system.
+
+The main outcomes are: (i)~a six-parameter semi-empirical voltage model coupled to
+lumped anode, membrane, and cathode dynamics that fits all healthy cells to within
+12\,mV; (ii)~a diagnosis capability --- degraded cells (0, 1, 2) are revealed both
+by voltage collapse and by degenerate, physically meaningless fits;
+(iii)~an explicit state-space representation in which $A$ and $B$ follow directly
+from the dynamic equations while $C$ and $D$ require Jacobian linearization of the
+nonlinear voltage equation, leading to proof that the model is generically
+controllable while a voltage-only observer can reconstruct the hydrogen pressure
+but not the water states; (iv)~an experimental characterization of the current
+response to load steps ($\tau_I\approx 8$--$10$\,s,
+$T_{s,2\%}\approx 32$--$40$\,s); and (v)~a control architecture based on a DC/DC
+boost converter regulated by a PI controller \cite{derbeli2017}, motivated by the
+limited authority of the hydrogen supply, in which the converter output is
+regulated to behave either as a current source (overcurrent protection) or as a
+voltage source (output-voltage regulation).
+
+Perspectives follow directly. On the control side, the next step is to implement
+the proposed boost-converter PI loop on the bench and tune it online following
+\cite{derbeli2017}, with the identified current timescale bounding the required
+closed-loop bandwidth; the observability analysis further supports a
+hydrogen-pressure regulator with a reduced-order voltage-based observer, with PI
+control as the literature-standard baseline \cite{zhu2017,derbeli2017} and LQ or
+time-delay control as upgrades \cite{pukrushpan2003,kim2010}. On the modeling
+side, capturing oxygen transients (removing the constant-$P_{O_2}$ assumption),
+liquid-water accumulation, and gas-supply delays \cite{kharrat2025} would extend
+validity at higher dynamics. Finally, replacing the degraded cells and repeating
+the calibration would allow stack-level closed-loop experiments.

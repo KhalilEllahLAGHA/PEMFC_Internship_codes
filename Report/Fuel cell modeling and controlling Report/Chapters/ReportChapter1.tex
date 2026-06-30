@@ -1,0 +1,48 @@
+% Chapter 1 — Introduction
+
+\chapter{Introduction}
+
+\label{Chapter1}
+
+Fuel cells convert the chemical energy of hydrogen directly into electricity, with
+water and heat as the only by-products. Among them, the proton exchange membrane
+fuel cell (PEMFC) is the leading candidate for transport and small stationary
+applications thanks to its low operating temperature, high power density, and fast
+start-up \cite{pukrushpan2003,daud2017pem}. Their efficient and safe operation,
+however, requires feedback control of the gas supply and load: insufficient
+reactant flow causes starvation and irreversible degradation, while excessive
+anode--cathode pressure difference can damage the membrane \cite{zhu2017,kharrat2025}.
+Control design, in turn, requires a model that is simple enough for analysis and
+accurate enough to represent the actual hardware --- including the differences
+between individual cells of a stack \cite{manana2006}.
+
+This internship, carried out at GIPSA-lab (Universit\'e Grenoble Alpes) under the
+supervision of Prof.~Emmanuel Witrant, addresses this need for a small educational
+PEMFC stack of ten cells. The objectives are:
+\begin{enumerate}[label=\arabic*)]
+    \item to develop a simplified, control-oriented dynamic model of a single cell
+          and of the stack, grounded in the electrochemical literature;
+    \item to identify the model parameters \emph{per cell} from experimental data
+          acquired on the bench;
+    \item to derive the linearized state-space representation and analyze its
+          structural controllability and observability, as a foundation for
+          controller and observer design;
+    \item to characterize experimentally the dynamic response of the stack to
+          resistive load steps, providing the timescales needed for control
+          bandwidth selection;
+    \item to propose a PI-based control architecture for the PEMFC power system
+          through a DC/DC boost converter, following \cite{derbeli2017}.
+\end{enumerate}
+
+The report is organized to give a global vision of the work.
+Chapter~\ref{Chapter2} summarizes the operating principle of PEMFCs, positions the
+work in the literature, and explains the practical constraints that shaped the
+control strategy. Chapter~\ref{Chapter3} presents the simplified model, the
+parameter-identification procedure, the linearized state-space analysis, and the
+experimental protocols. Chapter~\ref{Chapter4} discusses the calibration and
+step-response results. Chapter~\ref{Chapter5} presents the control of the PEMFC
+power system with a DC/DC boost converter and a PI controller.
+Chapter~\ref{Chapter6} concludes and outlines perspectives. The
+open-circuit-voltage derivation and the full per-cell parameter table are provided
+in Appendices~\ref{app:ocv} and~\ref{app:tables}; the main text is self-contained
+and readable without them.

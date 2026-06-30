@@ -1,0 +1,300 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Masters/Doctoral Thesis
+% LaTeX Template
+% Version 2.5 (27/8/17)
+%
+% This template was downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Version 2.x major modifications by:
+% Vel (vel@latextemplates.com)
+%
+% This template is based on a template by:
+% Steve Gunn (http://users.ecs.soton.ac.uk/srg/softwaretools/document/templates/)
+% Sunil Patel (http://www.sunilpatel.co.uk/thesis-template/)
+%
+% Template license:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[
+11pt, % The default document font size, options: 10pt, 11pt, 12pt
+%oneside, % Two side (alternating margins) for binding by default, uncomment to switch to one side
+english, % ngerman for German
+singlespacing, % Single line spacing, alternatives: onehalfspacing or doublespacing
+%draft, % Uncomment to enable draft mode (no pictures, no links, overfull hboxes indicated)
+%nolistspacing, % If the document is onehalfspacing or doublespacing, uncomment this to set spacing in lists to single
+%liststotoc, % Uncomment to add the list of figures/tables/etc to the table of contents
+%toctotoc, % Uncomment to add the main table of contents to the table of contents
+%parskip, % Uncomment to add space between paragraphs
+%nohyperref, % Uncomment to not load the hyperref package
+headsepline, % Uncomment to get a line under the header
+%chapterinoneline, % Uncomment to place the chapter title next to the number on one line
+%consistentlayout, % Uncomment to change the layout of the declaration, abstract and acknowledgements pages to match the default layout
+openany,
+]{MastersDoctoralThesis} % The class file specifying the document structure
+
+\usepackage[utf8]{inputenc} % Required for inputting international characters
+\usepackage[T1]{fontenc} % Output font encoding for international characters
+\usepackage{textcomp}
+\usepackage{amsmath,amssymb}
+\usepackage{mathpazo} % Use the Palatino font by default
+\usepackage[version=4]{mhchem}
+%\usepackage[backend=bibtex,style=authoryear,natbib=true]{biblatex} % Use the bibtex backend with the authoryear citation style (which resembles APA)
+% The filename of the bibliography
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows}
+\usetikzlibrary{arrows,arrows.meta,calc,positioning}
+
+\tikzset{
+    block/.style = {draw, rectangle,
+        minimum height=1cm,
+        minimum width=2cm},
+    input/.style = {coordinate,node distance=1cm},
+    output/.style = {coordinate,node distance=4cm},
+    arrow/.style={draw, -latex,node distance=2cm},
+    pinstyle/.style = {pin edge={latex-, black,node distance=2cm}},
+    sum/.style = {draw, circle, node distance=1cm}
+}
+\makeatletter
+\def\endthebibliography{%
+	\def\@noitemerr{\@latex@warning{Empty `thebibliography' environment}}%
+	\endlist
+}
+%----------------------------------------------------------------------------------------
+%	MARGIN SETTINGS
+%----------------------------------------------------------------------------------------
+
+\usepackage{graphicx}
+
+\geometry{
+	paper=a4paper, % Change to letterpaper for US letter
+	inner=1.5cm, % Inner margin (report rules: 1.5 cm on all sides)
+	outer=1.5cm, % Outer margin
+	bindingoffset=0cm, % Binding offset
+	top=1cm, % Top margin
+	bottom=1cm, % Bottom margin
+	%showframe, % Uncomment to show how the type block is set on the page
+}
+
+%----------------------------------------------------------------------------------------
+%	THESIS INFORMATION
+%----------------------------------------------------------------------------------------
+
+\thesistitle{Modeling and Control of a PEM Fuel Cell Stack} % Your thesis title, this is used in the title and abstract, print it elsewhere with \ttitle
+\supervisor{Prof. Emmanuel \textsc{WITRANT}} % Your supervisor's name, this is used in the title page, print it elsewhere with \supname
+\examiner{} % Your examiner's name, this is not currently used anywhere in the template, print it elsewhere with \examname
+\degree{} % Your degree name, this is used in the title page and abstract, print it elsewhere with \degreename
+\author{Khalil Ellah \textsc{LAGHA}} % Your name, this is used in the title page and abstract, print it elsewhere with \authorname
+\addresses{} % Your address, this is not currently used anywhere in the template, print it elsewhere with \addressname
+
+\subject{} % Your subject area, this is not currently used anywhere in the template, print it elsewhere with \subjectname
+\keywords{} % Keywords for your thesis, this is not currently used anywhere in the template, print it elsewhere with \keywordnames
+\university{\href{http://www.university.com}{ Universit\'e Grenoble Alpes}} % Your university's name and URL, this is used in the title page and abstract, print it elsewhere with \univname
+\department{\href{http://department.university.com}{}} % Your department's name and URL, this is used in the title page and abstract, print it elsewhere with \deptname
+\group{\href{http://researchgroup.university.com}{Infinity Team - Gipsa}} % Your research group's name and URL, this is used in the title page, print it elsewhere with \groupname
+\faculty{\href{http://faculty.university.com}{}} % Your faculty's name and URL, this is used in the title page and abstract, print it elsewhere with \facname
+
+\AtBeginDocument{
+\hypersetup{pdftitle=\ttitle} % Set the PDF's title to your title
+\hypersetup{pdfauthor=\authorname} % Set the PDF's author to your name
+\hypersetup{pdfkeywords=\keywordnames} % Set the PDF's keywords to your keywords
+}
+\usepackage{multicol}
+\begin{document}
+
+\frontmatter % Use roman page numbering style (i, ii, iii, iv...) for the pre-content pages
+
+\pagestyle{plain} % Default to the plain heading style until the thesis style is called for the body content
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\begin{titlepage}
+\begin{center}
+
+\vspace*{.04\textheight}
+\begin{minipage}{0.45\textwidth}
+\begin{flushleft}
+\includegraphics[height=2cm]{Figures/UGAlogo.png}
+\end{flushleft}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+\begin{flushright}
+\includegraphics[height=2cm]{Figures/gipsa-lablogo.jpg}
+\end{flushright}
+\end{minipage}\\[1.2cm]
+
+{\scshape\LARGE \univname\par}\vspace{1.5cm} % University name
+\textsc{\Large Internship Report}\\[0.5cm] % Thesis type
+
+\HRule \\[0.4cm] % Horizontal line
+{\huge \bfseries \ttitle\par}\vspace{0.4cm} % Thesis title
+\HRule \\[1.5cm] % Horizontal line
+
+\begin{minipage}[t]{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Author:}\\
+\authorname
+\end{flushleft}
+\end{minipage}
+\begin{minipage}[t]{0.4\textwidth}
+\begin{flushright} \large
+\emph{Supervisor:} \\
+\supname
+\end{flushright}
+\end{minipage}\\[3cm]
+
+\vfill
+
+\large \textit{\degreename}\\[0.3cm] % University requirement text
+\textit{}\\[0.4cm]
+\groupname\\[2cm] % Research group name and department name
+
+\vfill
+
+{\large \today}\\[4cm] % Date
+%\includegraphics{Logo} % University/department logo - uncomment to place it
+
+\vfill
+\end{center}
+\end{titlepage}
+
+%----------------------------------------------------------------------------------------
+%	DECLARATION PAGE
+%----------------------------------------------------------------------------------------
+
+\begin{declaration}
+\addchaptertocentry{\authorshipname} % Add the declaration to the table of contents
+\noindent I, \authorname, declare that this thesis titled, \enquote{\ttitle} and the work presented in it are my own. I confirm that:
+
+\begin{itemize}
+\item This work was done wholly or mainly while in candidature for a research degree at this University.
+\item Where any part of this thesis has previously been submitted for a degree or any other qualification at this University or any other institution, this has been clearly stated.
+\item Where I have consulted the published work of others, this is always clearly attributed.
+\item Where I have quoted from the work of others, the source is always given. With the exception of such quotations, this thesis is entirely my own work.
+\item I have acknowledged all main sources of help.
+\item Where the thesis is based on work done by myself jointly with others, I have made clear exactly what was done by others and what I have contributed myself.\\
+\end{itemize}
+
+\noindent Signed:\\
+\rule[0.5em]{25em}{0.5pt} % This prints a line for the signature
+
+\noindent Date:\\
+\rule[0.5em]{25em}{0.5pt} % This prints a line to write the date
+\end{declaration}
+
+\cleardoublepage
+
+%----------------------------------------------------------------------------------------
+%	QUOTATION PAGE
+%----------------------------------------------------------------------------------------
+
+\vspace*{0.2\textheight}
+
+\noindent\enquote{\itshape Where there is a will there's a way.}\bigbreak
+
+\hfill George Herbert
+
+%----------------------------------------------------------------------------------------
+%	ABSTRACT PAGE
+%----------------------------------------------------------------------------------------
+
+\begin{abstract}
+\addchaptertocentry{\abstractname}
+This report presents the modeling, calibration, and dynamic characterization of a
+proton exchange membrane fuel cell (PEMFC) stack carried out at GIPSA-lab.
+A simplified control-oriented model is developed from electrochemical principles:
+a Nernst open-circuit voltage combined with semi-empirical activation, ohmic, and
+concentration losses, coupled to lumped-volume hydrogen, membrane-hydration, and
+cathode-humidity dynamics. Six parameters per cell are identified from the
+Optimization Experiment using a two-stage optimization (differential evolution
+followed by L-BFGS-B), yielding root-mean-square voltage errors below 12\,mV for
+all healthy cells and revealing degraded cells through voltage collapse and
+degenerate fits. The state-space matrices of the linearized model are written out
+explicitly --- the state and input matrices follow directly from the dynamic
+equations, while the output matrices require a Jacobian linearization of the
+nonlinear voltage equation. The system is shown to be structurally controllable
+for all realistic electro-osmotic drag coefficients, while a voltage-only output
+observes the hydrogen pressure but not the water states. Step-load experiments
+(3.3\,$\Omega$ and 6.8\,$\Omega$) characterize the current response of the stack
+($\tau_I \approx 8$--$10$\,s), providing quantitative targets for closed-loop
+control design. Building on these results, a control architecture based on a
+DC/DC boost converter regulated by a PI controller is presented, in which the
+converter output is regulated to behave either as a current source --- the
+approach of Derbeli et al.\ --- or as a voltage source. Results are presented in
+the body; the open-circuit-voltage derivation and the full per-cell parameter
+table are gathered in the appendices.
+\end{abstract}
+
+%----------------------------------------------------------------------------------------
+%	ACKNOWLEDGEMENTS
+%----------------------------------------------------------------------------------------
+
+\begin{acknowledgements}
+\addchaptertocentry{\acknowledgementname}
+I would like to thank my supervisor, Prof.~Emmanuel Witrant, and the Infinity Team
+at GIPSA-lab for their guidance and support throughout this internship.
+\end{acknowledgements}
+
+%----------------------------------------------------------------------------------------
+%	LIST OF CONTENTS/FIGURES/TABLES PAGES
+%----------------------------------------------------------------------------------------
+
+\tableofcontents % Prints the main table of contents
+
+\listoffigures % Prints the list of figures
+
+\listoftables % Prints the list of tables
+
+%----------------------------------------------------------------------------------------
+%	THESIS CONTENT - CHAPTERS
+%----------------------------------------------------------------------------------------
+
+\mainmatter % Begin numeric (1,2,3...) page numbering
+
+\pagestyle{thesis} % Return the page headers back to the "thesis" style
+
+% Include the chapters of the thesis as separate files from the Chapters folder
+
+\include{Chapters/ReportChapter1}
+\include{Chapters/ReportChapter2}
+\include{Chapters/ReportChapter3}
+\include{Chapters/ReportChapter4}
+\include{Chapters/ReportChapter5}
+\include{Chapters/ReportChapter6}
+
+%----------------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+\bibliographystyle{plain}
+\bibliography{example}
+
+%----------------------------------------------------------------------------------------
+%	THESIS CONTENT - APPENDICES
+%----------------------------------------------------------------------------------------
+
+\appendix % Cue to tell LaTeX that the following "chapters" are Appendices
+
+% Include the appendices of the thesis as separate files from the Appendices folder
+
+\include{Appendices/AppendixA}
+\include{Appendices/AppendixC}
+\include{Appendices/AppendixSource}
+
+%----------------------------------------------------------------------------------------
+
+\end{document}

@@ -1,0 +1,159 @@
+% Chapter 5 — Control of the PEMFC Power System
+
+\chapter{Control of the PEMFC Power System: DC/DC Boost Converter with PI Controller}
+
+\label{Chapter5}
+
+This chapter presents the control architecture adopted for the PEMFC power
+system. As motivated in Section~\ref{sec:challenges}, the hydrogen supply offers
+too little authority to regulate the load directly, so control is applied on the
+electrical side through a DC/DC converter. The design follows the approach of
+Derbeli et al.\ \cite{derbeli2017}.
+
+\section{System Overview}
+\label{sec:control-overview}
+
+By itself, a PEMFC stack is \emph{neither} an ideal voltage source \emph{nor} an
+ideal current source: its terminal voltage $V_{STACK}$ is low and varies strongly
+with the current drawn, following the polarization curve of
+Chapter~\ref{Chapter2}. The role of the control stage is to shape this raw output
+into a \emph{regulated source}. The stack feeds a \textbf{DC/DC boost converter}
+(a step-up chopper), and a \textbf{PI controller} closes the loop by acting on the
+converter duty cycle $T$ through pulse-width modulation (PWM)
+\cite{derbeli2017}. Figure~\ref{fig:boost-architecture} shows the architecture.
+
+Depending on which variable the PI loop regulates, the \emph{converter output}
+--- i.e.\ the PEMFC power system seen from the load --- can be made to behave as:
+\begin{itemize}
+    \item a \textbf{controlled current source} --- the loop regulates the
+          inductor (stack) current $I_L$ to a reference $I_{REF}$
+          (Section~\ref{sec:control-current});
+    \item a \textbf{controlled voltage source} --- the loop regulates the output
+          voltage $V_{OUT}$ to a reference $V_{REF}$
+          (Section~\ref{sec:control-voltage}).
+\end{itemize}
+It is therefore the regulated converter output, not the fuel cell itself, that is
+made to act as a current or a voltage source.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    >=Latex,
+    blk/.style={draw, rectangle, thick, fill=white, align=center,
+        minimum height=1.3cm, minimum width=2.6cm, inner sep=5pt, font=\small},
+    sums/.style={draw, circle, thick, minimum size=0.55cm, inner sep=0pt},
+    lab/.style={font=\scriptsize, align=center},
+    line/.style={-{Latex[length=2mm,width=1.4mm]}, line width=0.8pt}
+]
+\node[blk] (fc) {\textbf{PEMFC stack}\\ (current or\\ voltage source)};
+\node[blk, right=1.7cm of fc] (boost) {\textbf{DC/DC boost}\\ \textbf{converter}};
+\node[blk, right=1.7cm of boost] (load) {\textbf{Load}};
+\node[blk, below=1.4cm of boost] (pwm) {\textbf{PWM}};
+\node[blk, left=1.5cm of pwm] (pi) {\textbf{PI controller}\\ $u=K_P e + K_I\!\int\! e\,dt$};
+\node[sums, left=1.3cm of pi] (sumj) {};
+\node[lab, above left=1pt and 1pt of sumj.north west] {$+$};
+\node[lab, below right=4pt and -2pt of sumj.south] {$-$};
+
+\draw[line] (fc) -- node[above,lab] {$V_{STACK}$} (boost);
+\draw[line] (boost) -- node[above,lab] {$V_{OUT}$} (load);
+\draw[line] (pwm) -- node[right,lab] {duty cycle $T$} (boost);
+\draw[line] (pi) -- (pwm);
+\draw[line] (sumj) -- node[above,lab] {$e$} (pi);
+\draw[line] ([xshift=-1.1cm]sumj.west) -- node[above,lab] {$I_{REF}$ (or $V_{REF}$)} (sumj);
+\draw[line] ([xshift=0.55cm]boost.south) |- ([yshift=-1.05cm]pi.south)
+    -| node[pos=0.25,below,lab] {measured $I_L$ (or $V_{OUT}$)} (sumj);
+\end{tikzpicture}
+\caption[Control architecture of the PEMFC power system]{Control architecture of
+         the PEMFC power system, after \cite{derbeli2017}: the stack feeds a DC/DC
+         boost converter whose duty cycle is set by a PI controller. Regulating
+         the inductor current $I_L$ makes the converter output behave as a current
+         source; regulating the output voltage $V_{OUT}$ makes it behave as a
+         voltage source.}
+\label{fig:boost-architecture}
+\end{figure}
+
+\section{Output Current Regulation (Current-Source Operation)}
+\label{sec:control-current}
+
+Here the goal is to make the regulated converter output behave as a
+\textbf{current source}. Following \cite{derbeli2017}, the design proceeds in five
+steps.
+
+\begin{enumerate}[label=\arabic*)]
+    \item \emph{Control objective.} The controlled variable is the inductor
+          (stack) current $I_L$, which the PI loop forces to track a reference
+          $I_{REF}$ so that the system delivers a regulated current. In the
+          reference design, $I_{REF}=9.74$\,A is the maximum-power operating point
+          of the 50\,W, ten-cell stack used for validation (54\,W at 5.54\,V).
+          Regulating the current directly also protects the stack, whose maximum
+          current (10\,A) must never be exceeded.
+    \item \emph{Boost converter state-space model.} Averaging the two switching
+          topologies of the converter (switch ON / switch OFF) over one PWM
+          period yields, with state $x=[\,i_L \;\; V_{OUT}\,]^{\top}$, duty
+          cycle $T$, load $R$, inductance $L$, and capacitance $C$
+          \cite{derbeli2017}:
+          \begin{equation}
+              \dot{x} =
+              \begin{bmatrix}
+                  0 & \dfrac{T-1}{L} \\[8pt]
+                  \dfrac{1-T}{C} & -\dfrac{1}{RC}
+              \end{bmatrix} x
+              +
+              \begin{bmatrix}
+                  \dfrac{1}{L} \\[6pt] 0
+              \end{bmatrix} u,
+              \qquad
+              y = \begin{bmatrix} 0 & 1 \end{bmatrix} x.
+              \label{eq:boost-ss}
+          \end{equation}
+    \item \emph{PI control law.} The error signal is $e = I_{REF} - I_L$, and
+          the control output (duty cycle) combines proportional and integral
+          action:
+          \begin{equation}
+              u = K_P\, e + K_I \!\int\! e \, dt.
+              \label{eq:pi-law}
+          \end{equation}
+          The proportional term shapes the rise time and the integral term
+          removes the steady-state error, at the cost of possible overshoot if the
+          gains are too aggressive.
+    \item \emph{PI tuning (online method).} The gains are tuned experimentally,
+          without knowledge of the plant transfer function \cite{derbeli2017}:
+          set $K_P=0$ and $T_i=\infty$; increase $K_P$ until sustained
+          oscillations appear and note this value $K_{PU}$; set
+          $K_P = K_{PU}/2$; then decrease $T_i$ until oscillations reappear
+          ($T_{iU}$) and set $T_i = 2\,T_{iU}$.
+    \item \emph{Expected behavior.} With properly tuned gains, the PI controller
+          produces a smooth, stable rise of $I_L$ to $I_{REF}$ ($\approx 400$\,ms
+          in the reference design) and good disturbance rejection under large load
+          variations, as validated on a dSPACE~1104 real-time platform
+          \cite{derbeli2017}.
+\end{enumerate}
+
+\section{Output Voltage Regulation (Voltage-Source Operation)}
+\label{sec:control-voltage}
+
+Here the goal is to make the same regulated converter output behave instead as a
+\textbf{voltage source}, using the same PI-based methodology.
+
+\begin{enumerate}[label=\arabic*)]
+    \item \emph{Control objective.} The controlled variable is now the converter
+          output voltage $V_{OUT}$, which the PI loop forces to track a reference
+          $V_{REF}$ so that the system delivers a regulated voltage to the load.
+    \item \emph{Boost converter model.} The same averaged state-space model
+          \eqref{eq:boost-ss} applies; the output of interest is the second
+          state, $y = V_{OUT}$.
+    \item \emph{PI control law.} The error signal becomes
+          $e = V_{REF} - V_{OUT}$, and the same control law \eqref{eq:pi-law}
+          applies.
+    \item \emph{Tuning.} The same online procedure is used, adapted to the
+          voltage-loop dynamics, which include the $RC$ output stage and are
+          therefore slower than the current loop.
+    \item \emph{Comparison of the two objectives.} Regulating the current is
+          better suited to protecting the PEMFC from overcurrent, since the
+          controlled variable is the current drawn from the stack; regulating the
+          output voltage is more natural for supplying a fixed voltage to the
+          load. Both make the converter output behave as a regulated source, rely
+          on the same PI structure and converter model, and differ only in the
+          feedback variable ($I_L$ vs.\ $V_{OUT}$) and in the physical meaning of
+          the reference.
+\end{enumerate}
